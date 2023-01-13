@@ -86,8 +86,31 @@ server.get("/messages", async (req, res) => {
     }
 })
 
-server.post("/status", async(req, res) => {
+server.post("/status", async (req, res) => {
     const user = req.headers.user
-    const id = await db.collection("participants").findOne({name: user})
-    res.status(200).send(id)
+    try {
+        const id = await db.collection("participants").findOne({ name: user })
+        if (!id) {
+            return res.sendStatus(404)
+        }
+        res.status(200).send(id)
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
 })
+
+async function removeInactive() {
+    try {
+        const participants = await db.collection("paticipants").find().toArray()
+        const now = Date.now()
+        participants.forEach(async each => {
+            if (now - each.lastStatus > 10000) {
+                await db.collection("paticipants").delete({_id: each._id})   //TODO: Precisa de object id?
+                const time = dayjs().format('HH:mm:ss')
+                await db.collection("messages".insertOne({from: each.user, to: 'Todos', text: 'sai da sala...', type: 'status', time}))
+            }
+        })
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+}
