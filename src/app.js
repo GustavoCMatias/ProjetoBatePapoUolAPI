@@ -70,6 +70,7 @@ server.get("/messages", async (req, res) => {
 
     const user = req.headers.user
     const limit = req.query.limit
+    if(limit<=0||typeof(limit === 'string')) res.sendStatus(422)
     try {
         const msgs = await db.collection("messages").find().toArray()
 
