@@ -27,7 +27,7 @@ server.listen(5000, () => {
 
 server.post("/participants", async (req, res) => {
     const { name } = req.body
-    if (!name) return res.sendStatus(422)
+    if (!name || typeof(name) === 'number') return res.sendStatus(422)
     try {
         const nameCheck = await db.collection("participants").findOne({ name })
         if (nameCheck) return res.sendStatus(409)
@@ -36,6 +36,7 @@ server.post("/participants", async (req, res) => {
         const time = dayjs().format('HH:mm:ss')
         db.collection("participants").insertOne({ name, lastStatus: Date.now() })
         db.collection("messages").insertOne({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time })
+        console.log({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time })
         res.sendStatus(201)
     } catch (err) {
         return res.status(500).send(err.message);
@@ -70,7 +71,8 @@ server.get("/messages", async (req, res) => {
 
     const user = req.headers.user
     const limit = req.query.limit
-    if(limit<=0||typeof(limit === 'string')) res.sendStatus(422)
+
+    if(limit<=0||typeof(limit) === 'string') return res.sendStatus(422)
     try {
         const msgs = await db.collection("messages").find().toArray()
 
