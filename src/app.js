@@ -21,15 +21,25 @@ mongoClient.connect()
         console.log('deu ruim')
     })
 
-server.listen(5000, () =>{
+server.listen(5000, () => {
     console.log('Sucesso')
 })
 
-server.post("/participants", (req, res) => {
-    const {name} = req.body
-    if(!name) return res.status(422)
-    db.collection("participants").insertOne({name, lastStatus: Date.now()})
-    res.sendStatus(201)
+server.post("/participants", async (req, res) => {
+    const { name } = req.body
+    if (!name) return res.status(422)
+    try {
+        const nameCheck = await db.collection("participants").findOne({ name })
+        if (nameCheck) return res.status(409)
+
+
+        const time = dayjs().format('HH:mm:ss')
+        db.collection("participants").insertOne({ name, lastStatus: Date.now() })
+        db.collection("messages").insertOne({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time })
+        res.sendStatus(201)
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
 })
 
 server.get("/participants", (req, res) => {
@@ -40,10 +50,26 @@ server.get("/participants", (req, res) => {
 
 server.post("/messages", (req, res) => {
     const from = req.headers.user
-    const {to, text, type} = req.body
+    const { to, text, type } = req.body
     const time = dayjs().format('HH:mm:ss')
     console.log(from, to, text, type, time)
-    if(!to || !text) return res.status(422)
-    // db.collection("messages").insertOne({from, to, text, type, time})
+
+    try {
+        const var1 = !to || !text
+        const var2 = type !== 'message' && type !== 'private_message'
+        const var3 = db.collection("participants").find({name: from})
+        if (!var1 || !var2 || !var3) return res.status(422)
+
+        db.collection("messages").insertOne({ from, to, text, type, time })
+        res.sendStatus(201)
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+})
+
+server.get("/messages", (req, res) => {
+
+    const limit = req.query.limit
+    console.log(limit)
     res.sendStatus(201)
 })
