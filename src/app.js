@@ -27,10 +27,10 @@ server.listen(5000, () => {
 
 server.post("/participants", async (req, res) => {
     const { name } = req.body
-    if (!name) return res.status(422)
+    if (!name) return res.sendStatus(422)
     try {
         const nameCheck = await db.collection("participants").findOne({ name })
-        if (nameCheck) return res.status(409)
+        if (nameCheck) return res.sendStatus(409)
 
 
         const time = dayjs().format('HH:mm:ss')
@@ -48,17 +48,16 @@ server.get("/participants", (req, res) => {
     })
 })
 
-server.post("/messages", (req, res) => {
+server.post("/messages", async (req, res) => {
     const from = req.headers.user
     const { to, text, type } = req.body
     const time = dayjs().format('HH:mm:ss')
-    console.log(from, to, text, type, time)
 
     try {
-        const var1 = !to || !text
-        const var2 = type !== 'message' && type !== 'private_message'
-        const var3 = db.collection("participants").find({ name: from })
-        if (!var1 || !var2 || !var3) return res.status(422)
+        const var1 = !to || !text 
+        const var2 = type !== 'message' && type !== 'private_message' 
+        const var3 = await db.collection("participants").findOne({ name: from }) 
+        if (var1 || var2 || !var3) return res.sendStatus(422)
 
         db.collection("messages").insertOne({ from, to, text, type, time })
         res.sendStatus(201)
@@ -74,10 +73,12 @@ server.get("/messages", async (req, res) => {
     try {
         const msgs = await db.collection("messages").find().toArray()
 
+        let msgsFiltered
+
         if (limit) {
-            const msgsFiltered = msgs.filter(each => { each.type === message || each.to === user }).slice(-limit)
+            msgsFiltered = msgs.filter(each => each.type === 'message'|| each.type === 'status' || each.to === user || each.from === user).slice(-limit)
         } else {
-            const msgsFiltered = msgs.filter(each => { each.type === message || each.to === user })
+            msgsFiltered = msgs.filter(each => each.type === 'message'|| each.type === 'status' || each.to === user || each.from === user)
         }
 
         res.status(200).send(msgsFiltered)
