@@ -70,9 +70,9 @@ server.post("/messages", async (req, res) => {
 server.get("/messages", async (req, res) => {
 
     const user = req.headers.user
-    const limit = req.query.limit
+    const limit = Number(req.query.limit)
 
-    if(limit<=0||typeof(limit) === 'string') return res.sendStatus(422)
+    if(limit<=0||isNaN(limit)) return res.sendStatus(422)
     try {
         const msgs = await db.collection("messages").find().toArray()
 
@@ -92,8 +92,10 @@ server.get("/messages", async (req, res) => {
 
 server.post("/status", async (req, res) => {
     const user = req.headers.user
+    const lastStatus = Date.now()
     try {
-        const id = await db.collection("participants").findOne({ name: user })
+        const id = await db.collection("participants").updateOne({ name: user }, {$set: lastStatus})
+         
         if (!id) {
             return res.sendStatus(404)
         }
