@@ -57,7 +57,7 @@ server.post("/messages", (req, res) => {
     try {
         const var1 = !to || !text
         const var2 = type !== 'message' && type !== 'private_message'
-        const var3 = db.collection("participants").find({name: from})
+        const var3 = db.collection("participants").find({ name: from })
         if (!var1 || !var2 || !var3) return res.status(422)
 
         db.collection("messages").insertOne({ from, to, text, type, time })
@@ -71,13 +71,23 @@ server.get("/messages", async (req, res) => {
 
     const user = req.headers.user
     const limit = req.query.limit
-    const msgs = await db.collection("messages").find().toArray()
-    
-    if(limit){
-        const msgsFiltered = msgs.filter(each => {each.type === message || each.to === user}).slice(-limit)
-    }else{
-        const msgsFiltered = msgs.filter(each => {each.type === message || each.to === user})
+    try {
+        const msgs = await db.collection("messages").find().toArray()
+
+        if (limit) {
+            const msgsFiltered = msgs.filter(each => { each.type === message || each.to === user }).slice(-limit)
+        } else {
+            const msgsFiltered = msgs.filter(each => { each.type === message || each.to === user })
+        }
+
+        res.status(200).send(msgsFiltered)
+    } catch (err) {
+        return res.status(500).send(err.message);
     }
-    
-    res.status(200).send(msgsFiltered)
+})
+
+server.post("/status", async(req, res) => {
+    const user = req.headers.user
+    const id = await db.collection("participants").findOne({name: user})
+    res.status(200).send(id)
 })
