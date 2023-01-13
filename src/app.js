@@ -67,9 +67,17 @@ server.post("/messages", (req, res) => {
     }
 })
 
-server.get("/messages", (req, res) => {
+server.get("/messages", async (req, res) => {
 
+    const user = req.headers.user
     const limit = req.query.limit
-    console.log(limit)
-    res.sendStatus(201)
+    const msgs = await db.collection("messages").find().toArray()
+    
+    if(limit){
+        const msgsFiltered = msgs.filter(each => {each.type === message || each.to === user}).slice(-limit)
+    }else{
+        const msgsFiltered = msgs.filter(each => {each.type === message || each.to === user})
+    }
+    
+    res.status(200).send(msgsFiltered)
 })
