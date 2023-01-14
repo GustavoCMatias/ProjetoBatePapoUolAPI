@@ -1,7 +1,7 @@
 import express from 'express'
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { MongoClient } from "mongodb";
+import { MongoClient, ObjectId } from "mongodb";
 import dayjs from "dayjs"
 dotenv.config();
 
@@ -36,7 +36,6 @@ server.post("/participants", async (req, res) => {
         const time = dayjs().format('HH:mm:ss')
         db.collection("participants").insertOne({ name, lastStatus: Date.now() })
         db.collection("messages").insertOne({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time })
-        console.log({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time })
         res.sendStatus(201)
     } catch (err) {
         return res.status(500).send(err.message);
@@ -94,12 +93,12 @@ server.post("/status", async (req, res) => {
     const user = req.headers.user
     const lastStatus = Date.now()
     try {
-        const id = await db.collection("participants").updateOne({ name: user }, {$set: lastStatus})
+        const {modifiedCount} = await db.collection("participants").updateOne({ name: user }, {$set: {lastStatus}})
          
-        if (!id) {
+        if (modifiedCount === 0) {
             return res.sendStatus(404)
         }
-        res.status(200).send(id)
+        res.sendStatus(200)
     } catch (err) {
         return res.status(500).send(err.message);
     }
@@ -107,16 +106,19 @@ server.post("/status", async (req, res) => {
 
 async function removeInactive() {
     try {
-        const participants = await db.collection("paticipants").find().toArray()
+        const participants = await db.collection("participants").find().toArray()
         const now = Date.now()
         participants.forEach(async each => {
             if (now - each.lastStatus > 10000) {
-                await db.collection("paticipants").delete({_id: each._id})   //TODO: Precisa de object id?
+                const del = await db.collection("participants").deleteOne({_id: ObjectId(each._id)})   //TODO: Precisa de object id?
+                console.log(del)
                 const time = dayjs().format('HH:mm:ss')
-                await db.collection("messages".insertOne({from: each.user, to: 'Todos', text: 'sai da sala...', type: 'status', time}))
+                await db.collection("messages").insertOne({from: each.name, to: 'Todos', text: 'sai da sala...', type: 'status', time})
             }
         })
     } catch (err) {
         return res.status(500).send(err.message);
     }
 }
+
+setInterval(removeInactive, 15000)
