@@ -39,8 +39,8 @@ server.post("/participants", async (req, res) => {
         if (nameCheck) return res.sendStatus(409)
 
         const time = dayjs().format('HH:mm:ss')
-        db.collection("participants").insertOne({ name, lastStatus: Date.now() })
-        db.collection("messages").insertOne({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time })
+        await db.collection("participants").insertOne({ name, lastStatus: Date.now() })
+        await db.collection("messages").insertOne({ from: name, to: 'Todos', text: 'entra na sala...', type: 'status', time })
         res.sendStatus(201)
     } catch (err) {
         return res.status(500).send(err.message);
