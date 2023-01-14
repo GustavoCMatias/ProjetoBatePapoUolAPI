@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import { MongoClient, ObjectId } from "mongodb";
 import dayjs from "dayjs"
+import joi from 'joi'
 dotenv.config();
 
 const server = express();
@@ -26,12 +27,16 @@ server.listen(5000, () => {
 })
 
 server.post("/participants", async (req, res) => {
+    const userSchema = joi.object({
+        name: joi.string().required(),
+      });
     const { name } = req.body
-    if (!name || typeof(name) === 'number') return res.sendStatus(422)
+    const validation = userSchema.validate({name})
+    if (validation.error) return res.status(422).send(validation.error.details)
+
     try {
         const nameCheck = await db.collection("participants").findOne({ name })
         if (nameCheck) return res.sendStatus(409)
-
 
         const time = dayjs().format('HH:mm:ss')
         db.collection("participants").insertOne({ name, lastStatus: Date.now() })
@@ -78,9 +83,9 @@ server.get("/messages", async (req, res) => {
         let msgsFiltered
 
         if (limit) {
-            msgsFiltered = msgs.filter(each => each.type === 'message'|| each.type === 'status' || each.to === user || each.from === user).slice(-limit)
+            msgsFiltered = msgs.filter(each => each.type === 'message'|| each.type === 'status' || each.to === user || each.from === user).slice(-limit).reverse()
         } else {
-            msgsFiltered = msgs.filter(each => each.type === 'message'|| each.type === 'status' || each.to === user || each.from === user)
+            msgsFiltered = msgs.filter(each => each.type === 'message'|| each.type === 'status' || each.to === user || each.from === user).reverse()
         }
 
         res.status(200).send(msgsFiltered)
