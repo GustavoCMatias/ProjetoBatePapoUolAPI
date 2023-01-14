@@ -69,9 +69,9 @@ server.post("/messages", async (req, res) => {
 server.get("/messages", async (req, res) => {
 
     const user = req.headers.user
-    const limit = Number(req.query.limit)
+    const limit = req.query.limit
 
-    if(limit<=0||isNaN(limit)) return res.sendStatus(422)
+    if(!(limit>0||limit===undefined)) return res.sendStatus(422)
     try {
         const msgs = await db.collection("messages").find().toArray()
 
@@ -110,8 +110,7 @@ async function removeInactive() {
         const now = Date.now()
         participants.forEach(async each => {
             if (now - each.lastStatus > 10000) {
-                const del = await db.collection("participants").deleteOne({_id: ObjectId(each._id)})   //TODO: Precisa de object id?
-                console.log(del)
+                const del = await db.collection("participants").deleteOne({_id: ObjectId(each._id)})  
                 const time = dayjs().format('HH:mm:ss')
                 await db.collection("messages").insertOne({from: each.name, to: 'Todos', text: 'sai da sala...', type: 'status', time})
             }
